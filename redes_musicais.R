@@ -1,6 +1,6 @@
-# -------------------------------------------------------
+
 # 00) Pacotes
-# -------------------------------------------------------
+
 if(!require(dplyr)) install.packages("dplyr")
 if(!require(igraph)) install.packages("igraph")
 if(!require(proxy)) install.packages("proxy")
@@ -11,9 +11,9 @@ library(igraph)
 library(proxy)
 library(visNetwork)
 
-# -------------------------------------------------------
+
 # 01) Dataset da pesquisa
-# -------------------------------------------------------
+
 dados <- data.frame(
   Nome = c(
     "Giovanna Batista", "Alani da Silva Rodrigues", "Marcelo Amorim",
@@ -39,9 +39,9 @@ dados <- data.frame(
 
 dados
 
-# -------------------------------------------------------
+
 # 02) MATRIZ DE INCIDÊNCIA
-# -------------------------------------------------------
+
 cat_vars <- dados %>% select(Banda, Genero, Preferencia)
 
 inc_mat <- model.matrix(~ . - 1, data = cat_vars)
@@ -51,25 +51,30 @@ rownames(incidencia) <- dados$Nome
 print("Matriz de Incidência:")
 print(incidencia)
 
-# -------------------------------------------------------
+
 # 03) MATRIZ DE SIMILARIDADE (Jaccard)
-# -------------------------------------------------------
+
 similaridade <- as.matrix(simil(as.matrix(incidencia), method = "Jaccard"))
 
-print("Matriz de Similaridade:")
-print(round(similaridade, 3))
+# remover NAs (obrigatório)
+similaridade[is.na(similaridade)] <- 0
 
-# -------------------------------------------------------
+print("Matriz de Similaridade:")
+print(similaridade)
+
+
 # 04) MATRIZ DE COOCOORRÊNCIA
-# -------------------------------------------------------
+
 coocorrencia <- t(as.matrix(incidencia)) %*% as.matrix(incidencia)
 
 print("Matriz de Coocorrência:")
 print(coocorrencia)
 
-# -------------------------------------------------------
+
 # 05) GRAFO DE INCIDÊNCIA
-# -------------------------------------------------------
+-
+grafo_inc <- graph_from_incidence_matrix(as.matrix(incidencia))
+
 nodes_alunos <- data.frame(
   id = rownames(incidencia),
   label = rownames(incidencia),
@@ -95,13 +100,10 @@ for (aluno in rownames(incidencia)) {
   }
 }
 
-visNetwork(node_inc, links_inc) %>%
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
-  visIgraphLayout(layout = "layout_with_fr")
 
-# -------------------------------------------------------
 # 06) GRAFO DE SIMILARIDADE
-# -------------------------------------------------------
+grafo_sim <- graph_from_adjacency_matrix(similaridade, mode="undirected", diag=FALSE, weighted=TRUE)
+
 node_sim <- data.frame(
   id = rownames(similaridade),
   label = rownames(similaridade),
@@ -125,14 +127,11 @@ for (i in 1:nrow(similaridade)) {
   }
 }
 
-visNetwork(node_sim, links_sim) %>%
-  visEdges(scaling = list(min = 1, max = 7)) %>%
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
-  visIgraphLayout(layout = "layout_with_fr")
 
-# -------------------------------------------------------
 # 07) GRAFO DE COOCOORRÊNCIA
-# -------------------------------------------------------
+
+grafo_cooc <- graph_from_adjacency_matrix(coocorrencia, mode="undirected", diag=FALSE, weighted=TRUE)
+
 node_cooc <- data.frame(
   id = rownames(coocorrencia),
   label = rownames(coocorrencia),
@@ -156,17 +155,8 @@ for (i in 1:nrow(coocorrencia)) {
   }
 }
 
-visNetwork(node_cooc, links_cooc) %>%
-  visEdges(scaling = list(min = 1, max = 10)) %>%
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
-  visIgraphLayout(layout = "layout_with_fr")
 
-# -------------------------------------------------------
-# 08) MÉTRICAS TOPOLOGICAS (Opcional)
-# -------------------------------------------------------
-grafo_inc <- graph_from_incidence_matrix(as.matrix(incidencia))
-grafo_sim <- graph_from_adjacency_matrix(similaridade, mode="undirected", diag=FALSE, weighted=TRUE)
-grafo_cooc <- graph_from_adjacency_matrix(coocorrencia, mode="undirected", diag=FALSE, weighted=TRUE)
+# 08) MÉTRICAS TOPOLOGICAS
 
 metricas <- function(g) {
   list(
@@ -188,28 +178,29 @@ print("Métricas - Grafo de Coocorrência:")
 print(metricas(grafo_cooc))
 
 
-#mostrar matrizes
+# 09) MOSTRAR MATRIZES
+
 View(incidencia)
 View(similaridade)
 View(coocorrencia)
 
-#mostrar grafos
-#incidencia
+
+# 10) MOSTRAR GRAFOS (INTERATIVOS)
+
+
+# Incidência
 visNetwork(node_inc, links_inc) %>%
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
   visIgraphLayout(layout = "layout_with_fr")
 
-#similaridade
+# Similaridade
 visNetwork(node_sim, links_sim) %>%
   visEdges(scaling = list(min = 1, max = 7)) %>%
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
   visIgraphLayout(layout = "layout_with_fr")
 
-#coocorrencia
+# Coocorrência
 visNetwork(node_cooc, links_cooc) %>%
   visEdges(scaling = list(min = 1, max = 10)) %>%
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
   visIgraphLayout(layout = "layout_with_fr")
-
-
-
